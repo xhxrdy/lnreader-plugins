@@ -18,7 +18,7 @@ class RLIB implements Plugin.PluginBase {
   name = 'RanobeLib';
   site = 'https://ranobelib.me';
   apiSite = 'https://api.cdnlibs.org/api/manga/';
-  version = '2.2.1';
+  version = '2.2.2';
   icon = 'src/ru/ranobelib/icon.png';
   webStorageUtilized = true;
   imageRequestInit = {
@@ -28,6 +28,22 @@ class RLIB implements Plugin.PluginBase {
       Referer: this.site,
     },
   };
+
+  private headers = {
+    Accept:
+      'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    Referer: this.site,
+    'Site-Id': '3',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+  };
+
+  private getHeaders() {
+    return {
+      ...this.headers,
+      ...(this.user?.token ?? {}),
+    };
+  }
 
   async popularNovels(
     pageNo: number,
@@ -83,7 +99,7 @@ class RLIB implements Plugin.PluginBase {
     }
 
     const result: TopLevel = await fetchApi(url, {
-      headers: this.user?.token,
+      headers: this.getHeaders(),
     }).then(res => res.json());
 
     const novels: Plugin.NovelItem[] = [];
@@ -102,7 +118,9 @@ class RLIB implements Plugin.PluginBase {
   async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
     const { data }: { data: DataClass } = await fetchApi(
       `${this.apiSite}${novelPath}?fields[]=summary&fields[]=genres&fields[]=tags&fields[]=teams&fields[]=authors&fields[]=status_id&fields[]=artists`,
-      { headers: { ...this.user?.token, 'Site-Id': '3' } },
+      {
+        headers: this.getHeaders(),
+      },
     ).then(res => res.json());
 
     const novel: Plugin.SourceNovel = {
@@ -141,7 +159,9 @@ class RLIB implements Plugin.PluginBase {
 
     const chaptersJSON: { data: DataChapter[] } = await fetchApi(
       `${this.apiSite}${novelPath}/chapters`,
-      { headers: this.user?.token },
+      {
+        headers: this.getHeaders(),
+      },
     ).then(res => res.json());
 
     if (chaptersJSON.data?.length) {
@@ -205,7 +225,9 @@ class RLIB implements Plugin.PluginBase {
           number +
           '&volume=' +
           volume,
-        { headers: this.user?.token },
+        {
+          headers: this.getHeaders(),
+        },
       ).then(res => res.json());
       chapterText =
         result?.data?.content?.type == 'doc'
@@ -221,7 +243,7 @@ class RLIB implements Plugin.PluginBase {
   async searchNovels(searchTerm: string): Promise<Plugin.NovelItem[]> {
     const url = this.apiSite + '?site_id[0]=3&q=' + searchTerm;
     const result: TopLevel = await fetchApi(url, {
-      headers: this.user?.token,
+      headers: this.getHeaders(),
     }).then(res => res.json());
 
     const novels: Plugin.NovelItem[] = [];
