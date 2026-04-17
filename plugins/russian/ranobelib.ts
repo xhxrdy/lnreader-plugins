@@ -18,7 +18,7 @@ class RLIB implements Plugin.PluginBase {
   name = 'RanobeLib';
   site = 'https://ranobelib.me';
   apiSite = 'https://api.cdnlibs.org/api/manga/';
-  version = '2.2.2';
+  version = '2.2.3';
   icon = 'src/ru/ranobelib/icon.png';
   webStorageUtilized = true;
   imageRequestInit = {
@@ -127,8 +127,23 @@ class RLIB implements Plugin.PluginBase {
       path: novelPath,
       name: data.rus_name || data.name,
       cover: data.cover?.default || defaultCover,
-      summary: data.summary?.trim(),
+      summary: extractText(data.summary),
     };
+
+    function extractText(node?: Node): string {
+      if (!node) return '';
+
+      switch (node.type) {
+        case 'text':
+          return node.text;
+        case 'paragraph':
+        case 'doc':
+          return node.content.map(extractText).join('');
+        default:
+          const _exhaustiveCheck: never = node;
+          return '';
+      }
+    }
 
     if (data.status?.id) {
       novel.status = statusKey[data.status.id] || NovelStatus.Unknown;
@@ -695,7 +710,7 @@ type DataClass = {
   ageRestriction?: AgeRestriction;
   site?: number;
   type: string;
-  summary?: string;
+  summary?: Summary;
   is_licensed?: boolean;
   teams: DataTeam[];
   genres?: Genre[];
@@ -717,6 +732,25 @@ type DataClass = {
   content?: any;
   attachments?: Attachment[];
 };
+
+type TextNode = {
+  type: 'text';
+  text: string;
+};
+
+type ParagraphNode = {
+  type: 'paragraph';
+  content: Node[];
+};
+
+type DocNode = {
+  type: 'doc';
+  content: Node[];
+};
+
+type Node = TextNode | ParagraphNode | DocNode;
+
+type Summary = DocNode;
 
 type Artist = {
   id: number;
